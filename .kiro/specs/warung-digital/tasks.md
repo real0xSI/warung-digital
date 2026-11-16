@@ -16,7 +16,7 @@
 - [x] 12. Repo: public GitHub repo with /.kiro at root, MIT LICENSE, README
 - [x] 13. Submission package: SUBMISSION.md (description + Kiro write-up +
        reuse disclosure), DEMO-VIDEO-SCRIPT.md, CHECKLIST.md
-- [ ] 14. USER-SIDE (not done by agent): create/push is done by agent via PAT
-       if scope allows — otherwise user creates repo; user records + uploads
-       demo video to YouTube; user clicks Submit on Devpost before
-       Fri 4 Dec 2026 14:00 PT.
+- [x] 14. Repo: public GitHub repo real0xSI/warung-digital, main @ bc6d1f62,
+       MIT detected, `.kiro` at root. USER-SIDE remaining: record + upload
+       demo video to YouTube; LinkedIn link for Best Startup; click Submit
+       on Devpost before Fri 4 Dec 2026 14:00 PT.
