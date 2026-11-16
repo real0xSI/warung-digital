@@ -9,7 +9,7 @@ matches PLAN.md + triage file, no conflicts).
 | 2 | Category: Frankenstein (one category) | ✅ | `SUBMISSION.md`; Frankenstein stitch (6 pieces, one Worker) |
 | 3 | New project, built in Submission Period (30 Oct – 4 Dec 2026) | ✅ | All app code written 2026-11-16; reuse disclosed in README + SUBMISSION.md; new-code share ~78% (BUILD_LOG.md) |
 | 4 | Public GitHub repo (NOT GitLab/Bitbucket) | ✅ | https://github.com/real0xSI/warung-digital (public, created 2026-11-16) |
-| 5 | Open-source license, detectable in About | ✅ | MIT `LICENSE` at repo root (push pending — see BUILD_LOG.md) |
+| 5 | Open-source license, detectable in About | ✅ | MIT `LICENSE` at repo root; GitHub detects `spdx_id: MIT` (verified via API 2026-11-16) |
 | 6 | `/.kiro` directory at repo root, NOT in `.gitignore` | ✅ | `.kiro/` with specs/steering/hooks/agents/skills/prompts/settings; `.gitignore` lists only `__pycache__/`, `node_modules/`, `.env`, `*.log` |
 | 7 | URL to functional app | ✅ | https://warung.richcommunity.dpdns.org/ (live, verified end-to-end 2026-11-16) |
 | 8 | Text description of features | ✅ | `SUBMISSION.md` (copy-paste ready) |
