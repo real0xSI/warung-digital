@@ -1,0 +1,1 @@
+{"mcpServers":{"warung":{"args":["mcp/server.js"],"autoApprove":["list_products","store_stats","verify_license"],"command":"node","disabled":false,"env":{"ADMIN_TOKEN":"demo-admin-2026","HMAC_SECRET":"local-dev-only-do-not-use-in-production"}}}}
