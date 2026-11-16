@@ -35,7 +35,10 @@
 - **~03:20** GitHub repo created via PAT API: **real0xSI/warung-digital**
   (public, 201). Files pushed via the Git Data API (no `git push` — the VM
   git remote path has no usable credential for github.com; the API path is
-  the proven one).
+  the proven one). Main @ `bc6d1f62e6b964790a4ae861521ab9118f0e8aa3`, 28 files,
+  `.kiro` present. MIT license detected by GitHub (`spdx_id: MIT`, verified
+  via API — it showed `None` for a few minutes first, detection lag).
+  Doc updates (CHECKLIST/tasks/BUILD_LOG) pushed after via Contents API.
 
 ## Test results
 
