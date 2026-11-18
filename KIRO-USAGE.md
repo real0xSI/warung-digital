@@ -25,6 +25,27 @@ the rules accept IDE, CLI, Web and/or Crew.
    MCP server, skills, `worker.js`, `test.mjs`, `deploy.py`. Kiro's spec
    shaped the build — two spec requirements forced real design work:
    atomic stock decrement (req 6) and delivery-exactly-once (req 8/9).
+3. **Masterpiece round (2026-11-17 ~21:21 EST)** — one `kiro-cli chat` run
+   (`--no-interactive --trust-all-tools --trust-workspace`, Auto model),
+   on the redeemed 4,000-credit Kiroween grant, fixed 2 live bugs the
+   judges would have hit (dead Buy button from a template-literal
+   escape-eating bug; mock QR SVG with no xmlns, unrenderable as an
+   image) and added 3 upgrades test-first: a license-verify tool on the
+   storefront, my-orders + order lookup + copy button, and a live public
+   stats strip (`GET /api/stats`). Suite went 13/13 → 19/19, plus a
+   12/12 real-browser (headless Chromium) smoke test of the full judge
+   flow. The effort flag was rejected again (`model 'auto' offers no
+   effort levels`) and the run proceeded on Auto.
+4. **Warung-owner round (2026-11-17 ~21:30 EST)** — one `kiro-cli chat` run
+   (`--no-interactive --trust-all-tools --trust-workspace`, Auto model),
+   on the same grant, under the user's "masterpiece" bar (features must be
+   genuinely useful for a real Indonesian warung owner, not just flashy):
+   WhatsApp order confirmation (`wa.me/?text=`, key never in the message),
+   low-stock alert (≤ 2 units left, storefront badge + admin `[LOW]`),
+   and a "today's recap" for the seller (admin `today` block + public
+   `todayOrders` on the stats strip). Suite went 19/19 → 28/28, plus a
+   21/21 real-browser smoke test. The first launch of this run died in a
+   runtime restart ~35 s in with no file changes; the re-run completed.
 
 ## Kiro layer shipped in the repo (all under `.kiro/`, committed)
 
@@ -48,9 +69,11 @@ the rules accept IDE, CLI, Web and/or Crew.
 
 - No vibe-coding loop: the spec was written first and the code was built
   against it, with a 13-test suite gating every deploy.
-- No grant credits were spent on this build: it ran on the Kiro free tier
-  (Auto model). The 4,000-credit hackathon grant was requested and accepted
-  separately; redeeming/using it is a user-side step.
+- The 4,000-credit Kiroween grant was redeemed 2026-11-17 and powered the
+  masterpiece round (run 3 above) — the first Kiro run on grant credits;
+  runs 1–2 were on the free tier. Exact credit consumption of run 3 is
+  not visible from the CLI or its local session store; the dashboard
+  (app.kiro.dev/settings/account) is the source of truth.
 - No property-based testing: the test suite is example-based
   (`node:test`, stdlib only). Stating this plainly because the rules list
   property-based testing as a Kiro power — it was not used here.
