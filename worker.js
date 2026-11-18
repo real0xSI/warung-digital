@@ -135,10 +135,15 @@ function qrSvg(seed) {
       if (on) cells += `<rect x="${x * 10}" y="${y * 10}" width="10" height="10"/>`;
     }
   }
-  return `<svg width="120" height="120" viewBox="0 0 120 120" fill="#111" role="img" aria-label="Mock QR code">${cells}</svg>`;
+  // xmlns is required so browsers render it as an <img> (naturalWidth > 0).
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="#111" role="img" aria-label="Mock QR code">${cells}</svg>`;
 }
 
 function storefrontHtml() {
+  // Note: the inline <script> uses only single-quoted JS strings so the
+  // template literal does not need any escaping for the onclick handlers.
+  // Bug A fix: Buy buttons use data-product-id attributes + a delegated
+  // click listener instead of inline onclick, avoiding the double-escape trap.
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Warung Digital — Solo-Founder Store in a Box</title>
@@ -150,6 +155,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:16p
 h1{margin:0;font-size:22px}h1 span{color:var(--acc)}
 button{cursor:pointer;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700}
 button.ghost{background:transparent;border:1px solid var(--acc);color:var(--acc)}
+button.sm{padding:6px 12px;font-size:13px}
 main{max-width:760px;margin:0 auto;padding:20px}
 .tag{display:inline-block;background:var(--acc2);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;margin-bottom:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
@@ -157,40 +163,168 @@ main{max-width:760px;margin:0 auto;padding:20px}
 .mock{border:1px dashed var(--acc);border-radius:8px;padding:10px;margin-top:10px;font-size:13px}
 .mock b{color:var(--acc)}input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);margin:6px 0;background:var(--bg);color:var(--ink)}
 .delivery{background:#12351f;color:#b6f0c2;border-radius:8px;padding:12px;margin-top:10px;word-break:break-all}
+#stats-strip{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0;font-size:13px;color:var(--mut)}
+#stats-strip b{color:var(--ink)}
+.util-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.util-card h4{margin:0 0 8px;font-size:15px;color:var(--acc)}
+.row{display:flex;gap:8px}.row input{flex:1;margin:0}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:24px}
 </style></head><body>
 <header><h1>🎃 Warung <span>Digital</span></h1><button class="ghost" id="themeBtn" type="button">🌙 Costume: ON</button></header>
 <main>
 <span class="tag">KIROWEEN 2026 · FRANKENSTEIN · DEMO — MOCK CHECKOUT, NO REAL MONEY</span>
 <p class="mut">One solo seller, one store, three products. Buy it, get the delivery instantly — license key, seat invite, or software licence. Built with Kiro CLI.</p>
+<div id="stats-strip">Loading store stats…</div>
 <div id="products"></div>
 <div id="checkout"></div>
+<div class="util-card">
+  <h4>🔍 Verify a license key</h4>
+  <div class="row"><input id="vkey" placeholder="Paste a WD1-… license key here"><button class="sm" id="verifyBtn" type="button">Verify</button></div>
+  <div id="verifyResult" class="mut" style="margin-top:6px"></div>
+</div>
+<div class="util-card">
+  <h4>📦 Find my order</h4>
+  <div class="row"><input id="lookupOrderId" placeholder="Order number, e.g. 3"><button class="sm" id="lookupBtn" type="button">Look up</button></div>
+  <div id="lookupResult" class="mut" style="margin-top:6px"></div>
+</div>
+<div class="util-card" id="myOrders" style="display:none">
+  <h4>🗂 My orders on this device</h4>
+  <ul id="myOrdersList" style="margin:0;padding-left:18px;font-size:14px"></ul>
+</div>
 </main>
 <footer>Warung Digital · RichCommunity Studio · Built during Kiroween 2026 (30 Oct – 4 Dec 2026) with Kiro CLI · All payments are MOCK.</footer>
 <script>
 const $=s=>document.querySelector(s);
-function theme(init){const t=localStorage.getItem('wd-theme')||'dark';document.body.classList.toggle('light',t==='light');$('#themeBtn').textContent=t==='light'?'☀️ Costume: OFF':'🌙 Costume: ON';}
+function theme(){const t=localStorage.getItem('wd-theme')||'dark';document.body.classList.toggle('light',t==='light');$('#themeBtn').textContent=t==='light'?'☀️ Costume: OFF':'🌙 Costume: ON';}
 $('#themeBtn').onclick=()=>{const t=document.body.classList.contains('light')?'dark':'light';localStorage.setItem('wd-theme',t);theme();};
 theme();
 let PRODUCTS=[];
-async function load(){PRODUCTS=await(await fetch('/api/products')).json();$('#products').innerHTML=PRODUCTS.map(p=>
-'<div class="card"><h3>'+p.name+'</h3><p class="mut">'+p.desc+'</p><p><span class="price">Rp '+p.price.toLocaleString('id-ID')+'</span> '+(p.stock===null?'<span class="mut">· unlimited stock</span>':'<span class="mut">· '+p.stock+' left</span>')+'</p><p class="mut">Delivery: '+(p.delivery==='invite'?'seat invite code':'HMAC license key')+'</p><button type="button" onclick="buy(\''+p.id+'\')">Buy — mock checkout</button></div>').join('');}
-function railBox(rail,ref){if(rail==='QRIS')return '<div class="mock"><b>MOCK QRIS</b> — scan in the demo, then confirm below.<br><img src="/api/mockqr?seed='+ref+'" width="120" height="120" alt="Mock QR code"><br>Reference: <b>'+ref+'</b></div>';if(rail==='Stripe')return '<div class="mock"><b>MOCK STRIPE</b> — demo card form. Nothing is charged and card details never leave this page.<br><input placeholder="4242 4242 4242 4242 (demo only)" inputmode="numeric"><input placeholder="MM / YY"><input placeholder="CVC"></div>';return '<div class="mock"><b>MOCK CRYPTOBOT</b> — send demo USDT to:<br><code>TWarungDigitalMock9x7Q2m4K8vR1sT6uY3wE5aB</code><br>Auto-confirms after a 2-second demo delay.</div>';}
-window.buy=function(id){const p=PRODUCTS.find(x=>x.id===id);$('#checkout').innerHTML='<div class="card"><h3>Checkout — '+p.name+'</h3><p><span class="price">Rp '+p.price.toLocaleString('id-ID')+'</span></p><label>Your name / email<input id="buyer" placeholder="e.g. Budi — budi@example.com"></label><label>Mock payment rail<select id="rail"><option>QRIS</option><option>Stripe</option><option>Cryptobot</option></select></label><div id="railbox"></div><p><button type="button" id="confirmBtn">Confirm mock order</button></p><div id="result"></div></div>';
-const show=()=>{const r=$('#rail').value;$('#railbox').innerHTML=railBox(r,'WD-QRIS-…');};
-$('#rail').onchange=show;show();
-$('#confirmBtn').onclick=async()=>{const buyer=$('#buyer').value.trim()||'demo-buyer';const rail=$('#rail').value;$('#result').innerHTML='<p class="mut">Processing mock payment…</p>';if(rail==='Cryptobot')await new Promise(r=>setTimeout(r,2000));const res=await fetch('/api/order',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({productId:id,buyer,rail})});const o=await res.json();if(!res.ok){$('#result').innerHTML='<p>❌ '+ (o.error||'Order failed') +'</p>';return;}$('#result').innerHTML='<div class="delivery">✅ Order #'+o.id+' confirmed ('+o.rail+', ref '+o.mockRef+').<br>Your delivery — shown ONCE, copy it now:<br><b>'+o.delivery+'</b></div><p class="mut">Re-opening this order later shows the delivery masked.</p>';load();};}
-load();
+
+// ── Stats strip (U3 + W3) ────────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const s=await(await fetch('/api/stats')).json();
+    const seats=s.seatsLeftByProduct.find(x=>x.id==='claude-seat');
+    const seatsLabel=seats?(' · '+seats.left+' Claude seats left'):'';
+    const todayLabel=typeof s.todayOrders==='number'?' · Today: '+s.todayOrders+' orders':'';
+    $('#stats-strip').innerHTML='<b>'+s.totalOrders+'</b> orders · <b>Rp '+s.grandTotal.toLocaleString('id-ID')+'</b> in mock sales'+seatsLabel+todayLabel;
+  }catch(e){$('#stats-strip').textContent='Stats unavailable.';}
+}
+
+// ── Product list (Bug A fix: data-product-id, no inline onclick) ────────────
+async function load(){
+  PRODUCTS=await(await fetch('/api/products')).json();
+  $('#products').innerHTML=PRODUCTS.map(p=>{
+    const lowStock=p.stock!==null&&p.stock<=2;
+    const stockLabel=p.stock===null
+      ?'<span class="mut">· unlimited stock</span>'
+      :'<span class="mut">· '+p.stock+' left</span>'+(lowStock?'<span style="margin-left:8px;background:#ff7a1a;color:#fff;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:700">Only '+p.stock+' left — selling fast</span>':'');
+    return '<div class="card"><h3>'+p.name+'</h3><p class="mut">'+p.desc+'</p>'
+      +'<p><span class="price">Rp '+p.price.toLocaleString('id-ID')+'</span> '+stockLabel+'</p>'
+      +'<p class="mut">Delivery: '+(p.delivery==='invite'?'seat invite code':'HMAC license key')+'</p>'
+      +'<button type="button" class="buy-btn" data-product-id="'+p.id+'">Buy — mock checkout</button>'
+      +'</div>';
+  }).join('');
+  renderMyOrders();
+}
+
+// Delegated click handler for Buy buttons — reads id from data attribute.
+document.addEventListener('click',function(e){
+  const btn=e.target.closest('.buy-btn');
+  if(btn)buy(btn.dataset.productId);
+});
+
+function railBox(rail,ref){
+  if(rail==='QRIS')return '<div class="mock"><b>MOCK QRIS</b> — scan in the demo, then confirm below.<br><img src="/api/mockqr?seed='+ref+'" width="120" height="120" alt="Mock QR code"><br>Reference: <b>'+ref+'</b></div>';
+  if(rail==='Stripe')return '<div class="mock"><b>MOCK STRIPE</b> — demo card form. Nothing is charged and card details never leave this page.<br><input placeholder="4242 4242 4242 4242 (demo only)" inputmode="numeric"><input placeholder="MM / YY"><input placeholder="CVC"></div>';
+  return '<div class="mock"><b>MOCK CRYPTOBOT</b> — send demo USDT to:<br><code>TWarungDigitalMock9x7Q2m4K8vR1sT6uY3wE5aB</code><br>Auto-confirms after a 2-second demo delay.</div>';
+}
+
+function buy(id){
+  const p=PRODUCTS.find(x=>x.id===id);
+  if(!p)return;
+  $('#checkout').innerHTML='<div class="card"><h3>Checkout — '+p.name+'</h3><p><span class="price">Rp '+p.price.toLocaleString('id-ID')+'</span></p><label>Your name / email<input id="buyer" placeholder="e.g. Budi — budi@example.com"></label><label>Mock payment rail<select id="rail"><option>QRIS</option><option>Stripe</option><option>Cryptobot</option></select></label><div id="railbox"></div><p><button type="button" id="confirmBtn">Confirm mock order</button></p><div id="result"></div></div>';
+  const show=()=>{const r=$('#rail').value;$('#railbox').innerHTML=railBox(r,'WD-QRIS-…');};
+  $('#rail').onchange=show;show();
+  $('#confirmBtn').onclick=async()=>{
+    const buyer=$('#buyer').value.trim()||'demo-buyer';
+    const rail=$('#rail').value;
+    $(' #result').innerHTML='';
+    $('#result').innerHTML='<p class="mut">Processing mock payment…</p>';
+    if(rail==='Cryptobot')await new Promise(r=>setTimeout(r,2000));
+    const res=await fetch('/api/order',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({productId:id,buyer,rail})});
+    const o=await res.json();
+    if(!res.ok){$('#result').innerHTML='<p>❌ '+(o.error||'Order failed')+'</p>';return;}
+    // Save to localStorage for "My orders" (U2)
+    try{const ids=JSON.parse(localStorage.getItem('wd-orders')||'[]');ids.push(o.id);localStorage.setItem('wd-orders',JSON.stringify(ids));}catch(e){}
+    // Retrieve the delivery issued to the buyer (shown once, then masked on re-read)
+    const delivery=o.delivery;
+    // Build WA share message (W1) — only order metadata: product name, price,
+    // order number, mock payment ref. The license key / invite code is NEVER included.
+    const waMsg='Halo, saya baru order '+p.name+' (Rp '+p.price.toLocaleString('id-ID')+') di Warung Digital. Order #'+o.id+', ref '+o.mockRef+'. Mohon konfirmasi, terima kasih!';
+    const waHref='https://wa.me/?text='+encodeURIComponent(waMsg);
+    // Show delivery with Copy + WA share buttons (U2 + W1).
+    $('#result').innerHTML='<div class="delivery">✅ Order #'+o.id+' confirmed ('+o.rail+', ref '+o.mockRef+').<br>Your delivery — shown ONCE, copy it now:<br><span id="deliveryVal"><b>'+delivery+'</b></span> <button class="sm" type="button" id="copyDelivery">Copy</button> <a href="'+waHref+'" target="_blank" rel="noopener" style="display:inline-block;margin-left:4px;background:#25D366;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;text-decoration:none">📲 Share via WhatsApp</a></div><p class="mut">Re-opening this order later shows the delivery masked.</p>';
+    $('#copyDelivery').onclick=()=>{navigator.clipboard.writeText(delivery).then(()=>{$('#copyDelivery').textContent='Copied!';}).catch(()=>{});};
+    load();loadStats();
+  };
+}
+
+// ── My orders on this device (U2) ───────────────────────────────────────────
+function renderMyOrders(){
+  try{
+    const ids=JSON.parse(localStorage.getItem('wd-orders')||'[]');
+    if(!ids.length)return;
+    $('#myOrders').style.display='';
+    $('#myOrdersList').innerHTML=ids.map(n=>'<li>Order #'+n+' — <a href="#" class="lookup-link" data-oid="'+n+'" style="color:var(--acc)">look up</a></li>').join('');
+  }catch(e){}
+}
+document.addEventListener('click',function(e){
+  const a=e.target.closest('.lookup-link');
+  if(!a)return;
+  e.preventDefault();
+  lookupOrder(a.dataset.oid);
+});
+
+// ── Order lookup (U2) ────────────────────────────────────────────────────────
+async function lookupOrder(id){
+  $('#lookupResult').textContent='Looking up…';
+  try{
+    const res=await fetch('/api/order/'+id);
+    const o=await res.json();
+    if(!res.ok){$('#lookupResult').textContent='❌ '+(o.error||'Not found');return;}
+    $('#lookupResult').innerHTML='<b>Order #'+o.id+'</b> · '+o.productName+' · '+o.rail+' · Rp '+o.amount.toLocaleString('id-ID')+'<br>Delivery: <span style="word-break:break-all">'+o.delivery+'</span>';
+  }catch(e){$('#lookupResult').textContent='Error: '+e.message;}
+}
+$('#lookupBtn').onclick=()=>lookupOrder($('#lookupOrderId').value.trim());
+
+// ── License verify (U1) ──────────────────────────────────────────────────────
+$('#verifyBtn').onclick=async()=>{
+  const key=$('#vkey').value.trim();
+  if(!key){$('#verifyResult').textContent='Enter a key first.';return;}
+  const res=await fetch('/api/license/verify?key='+encodeURIComponent(key));
+  const v=await res.json();
+  if(v.valid){$('#verifyResult').innerHTML='✅ <b>Valid</b> — product: '+v.productId+', order: '+v.orderId;}
+  else{$('#verifyResult').innerHTML='❌ <b>Invalid</b> — key not recognised or tampered.';}
+};
+
+load();loadStats();
 </script></body></html>`;
 }
 
 function adminHtml(stats) {
   const rows = stats.orders.map((o) => `<tr><td>${o.id}</td><td>${o.productName}</td><td>${o.buyer}</td><td>${o.rail}</td><td>Rp ${o.amount.toLocaleString("id-ID")}</td><td>${o.createdAt}</td><td>${o.delivery === null ? "—" : "masked"}</td></tr>`).join("");
-  const stock = stats.products.map((p) => `<li>${p.name}: ${p.stock === null ? "unlimited" : p.stock + " left"} — revenue Rp ${p.revenue.toLocaleString("id-ID")}</li>`).join("");
+  const stock = stats.products.map((p) => {
+    const low = p.stock !== null && p.stock <= 2 ? ' <b style="color:#ff7a1a">[LOW]</b>' : "";
+    return `<li>${p.name}: ${p.stock === null ? "unlimited" : p.stock + " left"}${low} — revenue Rp ${p.revenue.toLocaleString("id-ID")}</li>`;
+  }).join("");
+  const t = stats.today;
+  const todayLine = `<p>Today (${t.date}): <b>${t.orders}</b> orders · <b>Rp ${t.revenue.toLocaleString("id-ID")}</b></p>`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Warung Digital — Admin</title>
 <style>body{font-family:system-ui,sans-serif;background:#1a0f2e;color:#f5efe6;margin:0;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #4a2d73;padding:8px;text-align:left}h1{color:#ff7a1a}</style></head>
 <body><h1>🎃 Warung Digital — Admin</h1>
 <p>Grand total revenue: <b>Rp ${stats.grandTotal.toLocaleString("id-ID")}</b> · Orders: <b>${stats.orders.length}</b></p>
+${todayLine}
 <p style="color:#c9b8e8;font-size:13px">Note: orders are stored in Cloudflare KV (eventual consistency) — a fresh order can take up to ~60 s to appear here. The checkout confirmation itself is always authoritative.</p>
 <h2>Stock &amp; revenue</h2><ul>${stock}</ul>
 <h2>Orders</h2><table><tr><th>#</th><th>Product</th><th>Buyer</th><th>Rail</th><th>Amount</th><th>Time</th><th>Delivery</th></tr>${rows || '<tr><td colspan="7">No orders yet.</td></tr>'}</table>
@@ -239,7 +373,34 @@ function stats(env) {
     products,
     orders: state.orders.map((o) => ({ ...orderView(o, false), delivery: null })),
     grandTotal: state.orders.reduce((s, o) => s + o.amount, 0),
+    today: todayRecap(),
   };
+}
+
+// Today's date as YYYY-MM-DD (UTC) derived from an ISO timestamp string.
+function isoToDate(iso) {
+  return iso.slice(0, 10); // "2026-11-18T…" → "2026-11-18"
+}
+
+function todayRecap() {
+  const today = isoToDate(new Date().toISOString());
+  const todayOrders = state.orders.filter((o) => isoToDate(o.createdAt) === today);
+  return {
+    date: today,
+    orders: todayOrders.length,
+    revenue: todayOrders.reduce((s, o) => s + o.amount, 0),
+  };
+}
+
+// Public stats — no delivery artifacts, no buyer PII (U3).
+function publicStats() {
+  const totalOrders = state.orders.length;
+  const grandTotal = state.orders.reduce((s, o) => s + o.amount, 0);
+  const seatsLeftByProduct = state.products
+    .filter((p) => p.stock !== null)
+    .map((p) => ({ id: p.id, name: p.name, left: p.stock }));
+  const todayOrders = todayRecap().orders;
+  return { totalOrders, grandTotal, seatsLeftByProduct, todayOrders };
 }
 
 export default {
@@ -254,6 +415,7 @@ export default {
       await loadState(env);
       if (request.method === "GET" && path === "/api/health") return json({ ok: true, store: "Warung Digital", mode: "mock", products: state.products.length, orders: state.orders.length });
       if (request.method === "GET" && path === "/api/products") return json(state.products.map(productView));
+      if (request.method === "GET" && path === "/api/stats") return json(publicStats());
       if (request.method === "POST" && path === "/api/order") return await handleOrder(request, env);
       if (request.method === "GET" && path.startsWith("/api/order/")) {
         const id = Number(path.split("/")[3]);
