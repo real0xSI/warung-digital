@@ -8,14 +8,14 @@ been submitted — the user submits manually on Devpost.**
 - **Category:** Frankenstein
 - **Bonus prizes:** Best Startup Project (+ Best Demo is automatic from the
   Presentation score; Social Blitz + Bonus Blog if the user posts them)
-- **Project URL (working app):** https://warung.richcommunity.dpdns.org/
+- **Project URL (working app):** https://warung.digitalshoup.my.id/
 - **Code repo (public GitHub):** https://github.com/real0xSI/warung-digital
 - **Demo video:** < 3 min, public YouTube — USER-SIDE, see below
 - **Test credentials (judges-only field):** Admin — open
-  `https://warung.richcommunity.dpdns.org/admin` with header
+  `https://warung.digitalshoup.my.id/admin` with header
   `Authorization: Bearer wd-admin-demo-2026` (public demo credential; the
   demo store holds no real data). No login needed for the storefront.
-- **Startup website (Best Startup):** https://jasa.richcommunity.dpdns.org/
+- **Startup website (Best Startup):** https://jasa.digitalshoup.my.id/
   (RichCommunity Studio). Founder LinkedIn: USER-SIDE (user confirms/adds).
 
 ## Text description (for the Devpost form)
