@@ -8,13 +8,27 @@ and HMAC_SECRET (fresh random hex per deploy; never printed or logged —
 redeploying rotates it, so license keys from an older deploy stop verifying).
 
 Usage:
-  python3 deploy.py deploy
+  python3 deploy.py deploy [--save-secret-to PATH | --keep-secret-from PATH]
   python3 deploy.py delete
+
+Secret handling (HMAC_SECRET signs license keys):
+  - Default: fresh random secret per deploy, never printed or stored.
+    License keys issued before that deploy STOP verifying after it.
+  - --save-secret-to PATH: write the fresh secret to PATH (mode 0600) so a
+    FUTURE deploy can reuse it. PATH must be OUTSIDE this repo (a secret
+    file inside the repo could be committed by accident).
+  - --keep-secret-from PATH: reuse the secret stored at PATH instead of
+    generating a fresh one; keys issued under that secret keep verifying.
+  - The CURRENT live secret cannot be recovered (Cloudflare never reveals
+    secret values via API), so the next redeploy WILL invalidate keys issued
+    before it, even with --save-secret-to. The flags only protect keys issued
+    AFTER the next deploy.
 
 Auth: same surrogate flow as cf.py (custom.cloudflare credential,
 api.cloudflare.com only). No secret is ever written to a file, log, or argument.
 """
 import json
+import os
 import secrets
 import sys
 import urllib.error
@@ -79,12 +93,72 @@ def build_multipart(js):
     return b"".join(parts), f"multipart/form-data; boundary={boundary}"
 
 
-def deploy():
-    import os
+def _repo_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _is_inside_repo(path):
+    try:
+        return os.path.commonpath([os.path.abspath(os.path.expanduser(path)), _repo_dir()]) == _repo_dir()
+    except ValueError:
+        return False
+
+
+def parse_secret_flags(argv):
+    """Parse deploy.py's optional secret flags. Returns (save_to, keep_from)."""
+    save_to = None
+    keep_from = None
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--save-secret-to" and i + 1 < len(argv):
+            save_to = argv[i + 1]
+            i += 2
+        elif a == "--keep-secret-from" and i + 1 < len(argv):
+            keep_from = argv[i + 1]
+            i += 2
+        else:
+            print(f"unknown deploy flag: {a}")
+            sys.exit(2)
+    if save_to and keep_from:
+        print("error: --save-secret-to and --keep-secret-from are mutually exclusive")
+        sys.exit(2)
+    for p in (save_to, keep_from):
+        if p and _is_inside_repo(p):
+            print(f"error: secret path {p} is inside the repo — put it outside (e.g. ~/.config/) so it can never be committed")
+            sys.exit(2)
+    return save_to, keep_from
+
+
+def _read_secret(path):
+    with open(os.path.expanduser(path), encoding="utf-8") as f:
+        s = f.read().strip()
+    if len(s) != 64 or any(c not in "0123456789abcdef" for c in s):
+        print(f"error: secret in {path} is not 64 lowercase hex chars")
+        sys.exit(2)
+    return s
+
+
+def _write_secret(path, secret):
+    p = os.path.expanduser(path)
+    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(secret + "\n")
+
+
+def deploy(argv=None):
+    save_to, keep_from = parse_secret_flags(argv or [])
     here = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(here, "worker.js"), encoding="utf-8") as f:
         js = f.read()
-    hmac_secret = secrets.token_hex(32)  # fresh per deploy; never printed
+    if keep_from:
+        hmac_secret = _read_secret(keep_from)
+        print(f"reusing HMAC_SECRET from {keep_from} (value not shown)")
+    else:
+        hmac_secret = secrets.token_hex(32)  # fresh per deploy; never printed
+        if save_to:
+            _write_secret(save_to, hmac_secret)
+            print(f"HMAC_SECRET saved to {save_to} (mode 0600, value not shown)")
     body, ctype = build_multipart(js)
     print(f"uploading worker {WORKER_NAME} ({len(js)} bytes js, multipart with KV binding)...")
     s, d = call("PUT", f"/accounts/{ACCOUNT_ID}/workers/scripts/{WORKER_NAME}", body=body, content_type=ctype)
@@ -121,8 +195,13 @@ def deploy():
         if not ok:
             return 1
     print(f"DEPLOYED https://{SUBDOMAIN}/")
-    print("NOTE: HMAC_SECRET was generated fresh for this deploy and not stored.")
-    print("License keys issued before this deploy will NOT verify after it.")
+    if keep_from:
+        print("NOTE: HMAC_SECRET was reused — license keys issued before this deploy still verify.")
+    elif save_to:
+        print(f"NOTE: HMAC_SECRET was generated fresh and saved to {save_to}. Future deploys can reuse it with --keep-secret-from {save_to}.")
+    else:
+        print("NOTE: HMAC_SECRET was generated fresh for this deploy and not stored.")
+        print("License keys issued before this deploy will NOT verify after it.")
     return 0
 
 
@@ -136,4 +215,4 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("usage: deploy.py deploy|delete")
         sys.exit(2)
-    sys.exit(deploy() if sys.argv[1] == "deploy" else delete())
+    sys.exit(deploy(sys.argv[2:]) if sys.argv[1] == "deploy" else delete())
