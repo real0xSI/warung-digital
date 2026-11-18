@@ -2,7 +2,7 @@
 
 Target: **2 min 20 s**. Screen recording, no facecam. English voiceover or
 captions. No copyrighted music, no third-party trademarks on screen. Film the
-LIVE app at https://warung.richcommunity.dpdns.org/ (not localhost).
+LIVE app at https://warung.digitalshoup.my.id/ (not localhost).
 
 ## Shots
 
